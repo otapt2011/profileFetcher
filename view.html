@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full overflow-hidden dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=auto, user-scalable=no">
+  <title>TikTok DB Viewer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {} }
+    }
+  </script>
+  <style>
+    .hidden-col { display: none; }
+    #dropZone.drag-active { border-color: #ec4899; background: rgba(236,72,153,0.1); }
+    #savedQueriesList li:hover { background: rgba(236,72,153,0.1); }
+  </style>
+</head>
+<body class="flex flex-col bg-white dark:bg-black text-gray-800 dark:text-white font-sans text-sm h-full overflow-hidden">
+
+  <!-- HEADER -->
+  <header class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow flex items-center justify-between z-10 px-2 py-2">
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-database text-pink-600 dark:text-pink-400 text-xl"></i>
+      <span class="font-semibold truncate">TikTok DB Viewer</span>
+    </div>
+    <button id="themeToggle" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition">
+      <i class="fa-solid fa-moon text-lg"></i>
+    </button>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="min-h-0 w-full min-w-0 flex flex-row flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-32 bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+      <!-- File load area -->
+      <div class="p-2 space-y-2">
+        <div id="dropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer transition">
+          <i class="fa-solid fa-cloud-arrow-up text-2xl text-gray-400"></i>
+          <p class="text-xs mt-1">Drop DB file or click</p>
+          <input type="file" id="dbFileInput" accept=".db" class="hidden">
+        </div>
+        <!-- Load DB from default path -->
+        <button id="loadDefaultDbBtn" class="w-full bg-pink-600 hover:bg-pink-700 text-white py-1 px-2 rounded text-xs transition flex items-center justify-center gap-1">
+          <i class="fa-solid fa-folder-open"></i> Load Default DB
+        </button>
+      </div>
+      <!-- schema tree -->
+      <div class="flex-1 overflow-y-auto px-2">
+        <h3 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-2 mb-1">Tables &amp; Views</h3>
+        <ul id="schemaList" class="space-y-0.5 text-xs"></ul>
+      </div>
+      <!-- Quick stats -->
+      <div id="sidebarStats" class="p-2 border-t border-gray-200 dark:border-gray-700 text-xs hidden">
+        <div class="flex justify-between"><span>Profiles:</span><span id="statProfiles">0</span></div>
+        <div class="flex justify-between"><span>Following:</span><span id="statFollowing">0</span></div>
+        <div class="flex justify-between"><span>Friends:</span><span id="statFriends">0</span></div>
+        <div class="flex justify-between"><span>Blocked:</span><span id="statBlocked">0</span></div>
+      </div>
+    </aside>
+
+    <!-- Right content area -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Tab bar -->
+      <div class="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2">
+        <button data-tab="dashboard" class="tab-btn px-3 py-2 text-xs border-b-2 border-pink-600 font-medium">Dashboard</button>
+        <button data-tab="browse" class="tab-btn px-3 py-2 text-xs border-b-2 border-transparent">Browse</button>
+        <button data-tab="query" class="tab-btn px-3 py-2 text-xs border-b-2 border-transparent">Query</button>
+      </div>
+
+      <!-- Tab content -->
+      <div class="flex-1 overflow-hidden flex flex-col">
+        <!-- Dashboard -->
+        <div id="tab-dashboard" class="flex-1 overflow-y-auto p-4">
+          <div id="dashboardContent" class="text-center text-gray-500 dark:text-gray-400">Load a database to see stats</div>
+        </div>
+
+        <!-- Browse -->
+        <div id="tab-browse" class="flex-1 overflow-hidden flex flex-col hidden">
+          <div id="browseInfo" class="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            Table: <span id="currentTableName">-</span> · Rows: <span id="currentRowCount">0</span>
+          </div>
+          <div class="overflow-y-auto flex-1">
+            <table id="browseTable" class="w-full text-xs border-collapse table-fixed">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Query -->
+        <div id="tab-query" class="flex-1 overflow-hidden flex flex-col hidden">
+          <div class="flex gap-2 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <textarea id="sqlInput" rows="2" class="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded px-2 py-1 text-xs font-mono" placeholder="SELECT * FROM profiles LIMIT 10;"></textarea>
+            <div class="flex flex-col gap-1">
+              <button id="runQueryBtn" class="bg-pink-600 hover:bg-pink-700 text-white py-1 px-3 rounded text-xs">Run</button>
+              <button id="downloadJsonBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-3 rounded text-xs">Export</button>
+            </div>
+          </div>
+          <!-- Saved Queries section -->
+          <div class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1">
+            <details class="text-xs">
+              <summary class="cursor-pointer font-medium text-gray-600 dark:text-gray-300">Saved Queries</summary>
+              <ul id="savedQueriesList" class="mt-1 max-h-40 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700"></ul>
+            </details>
+          </div>
+          <!-- Query result table -->
+          <div class="overflow-y-auto flex-1" id="queryResultArea">
+            <table id="queryResultTable" class="w-full text-xs border-collapse table-fixed">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  
+  
+  <!-- Footer -->
+  <footer class="w-full bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg flex items-center justify-between z-10 px-2 py-1">
+    <div class="flex items-center gap-2 px-2 w-full min-w-0">
+      <a href="index.html" class="text-xs text-pink-600 dark:text-pink-400 hover:underline flex items-center gap-1">
+        <i class="fa-solid fa-arrow-left"></i> Back to App
+      </a>
+      <span class="text-xs text-gray-500 dark:text-gray-400 ml-auto">DB Viewer v1.0</span>
+    </div>
+  </footer>
+
+
+  <!-- Export modal -->
+  <div id="exportModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-50" id="exportOverlay"></div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-80 p-4 z-10">
+      <h3 class="font-semibold mb-3">Export Query Results</h3>
+      <div class="flex flex-col gap-2">
+        <button id="exportAsJson" class="bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-3 rounded text-xs text-left"><i class="fa-solid fa-file-code mr-2"></i>JSON</button>
+        <button id="exportAsCsv" class="bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-3 rounded text-xs text-left"><i class="fa-solid fa-file-csv mr-2"></i>CSV</button>
+        <button id="exportFullDb" class="bg-gray-600 hover:bg-gray-700 text-white py-1 px-3 rounded text-xs text-left"><i class="fa-solid fa-database mr-2"></i>Download full DB</button>
+      </div>
+      <button id="closeExportModal" class="mt-3 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Cancel</button>
+    </div>
+  </div>
+
+  <script src="/assets/jafersql.js"></script>
+  <script type="module" src="js/view.js"></script>
+</body>
+</html>

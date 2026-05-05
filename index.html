@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full overflow-hidden dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=auto, user-scalable=no">
+  <title>TikTok · Following Profiles + SQLite DB</title>
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tailwind CSS with dark mode class strategy -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: {} }
+    }
+  </script>
+
+  <style>
+    .hidden-col { display: none; }
+    /* Column widths managed by JS */
+    /* settings modal */
+    .modal-overlay { background-color: rgba(0,0,0,0.5); }
+    button.text-xs{
+      font-size: 10px!important;
+    }
+    th, td{
+      text-align: center;
+      vertical-align: middle;
+    }
+  </style>
+
+</head>
+<body class="flex flex-col bg-white dark:bg-black text-gray-800 dark:text-white font-sans text-sm h-full overflow-hidden">
+
+  <!-- ========== HEADER ========== -->
+
+<header class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-lg flex items-center z-10 px-4 py-2">
+  <div id="logo" class="h-full w-auto overflow-hidden flex items-center">
+    <i class="fa-brands fa-tiktok text-pink-600 dark:text-pink-400 text-xl"></i>
+  </div>
+  <div id="title" class="flex-1 h-full flex-1 overflow-hidden flex items-center px-2">
+    <span class="text-sm font-semibold text-gray-800 dark:text-white truncate">TikTok Following Extractor</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- NEW: Open viewer -->
+    <a href="view.html" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition p-1" title="Open DB Viewer">
+      <i class="fa-solid fa-table-columns text-lg"></i>
+    </a>
+    <button id="settingsBtn" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition p-1">
+      <i class="fa-solid fa-gear text-lg"></i>
+    </button>
+    <button id="themeToggle" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition p-1">
+      <i class="fa-solid fa-moon text-lg"></i>
+    </button>
+  </div>
+</header>
+  <!-- ========== MAIN (flex column) ========== -->
+  <main class="min-h-0 w-full min-w-0 flex flex-row flex-1 overflow-hidden py-2 px-2 pl-1 gap-2">
+    <!-- Sidebar -->
+
+<aside class="flex flex-col px-1 py-1 h-full min-h-0 w-14 bg-gray-200 dark:bg-gray-800 overflow-hidden gap-0">
+<div class="flex flex-col gap-3 items-center w-full overflow-hidden">
+<button id="uploadBtn" class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+<i class="fa-solid fa-upload"></i>
+<span>Upload</span>
+</button>
+
+<button id="fetchAllBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale" disabled:grayscale="0">
+<i class="fa-solid fa-play"></i>
+<span>Fetch</span>
+</button>
+<button id="pauseBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+<i class="fa-solid fa-pause"></i><span>Pause</span>
+</button>
+<button id="stopBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+<i class="fa-solid fa-stop"></i><span>Stop</span>
+        </button>
+
+        <button id="downloadProfilesBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <i class="fa-solid fa-download"></i><span>Profiles</span>
+        </button>
+        <button id="downloadFollowingBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <i class="fa-solid fa-download"></i><span>Following</span>
+        </button>
+        <button id="downloadSQLiteBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <i class="fa-solid fa-database"></i><span>SQLite</span>
+        </button>
+
+        <button id="compareBlocked" class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <span>Blocked</span>
+        </button>
+        <button id="getFailed" class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <span>Get Failed</span>
+        </button>
+        <button id="compareUser" class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <span>Compare User</span>
+        </button>
+        <button id="switchBlock" class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <span>Switch Block</span>
+        </button>
+        <button id="fetchBlockedBtn" disabled class="flex flex-col items-center w-full max-w-full p-1 text-xs font-medium rounded-md transition duration-300 text-pink-600 dark:text-pink-200 border border-white/30 dark:border-white/10 backdrop-blur-lg bg-white/20 dark:bg-white/10 hover:bg-white/30 dark:hover:bg-white/20 active:bg-white/40 dark:active:bg-white/30 shadow-lg shadow-pink-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale">
+          <i class="fa-solid fa-play mb-1"></i><span>Blk Fetch</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <div id="fetchBlock" class="flex-1 min-h-0 flex flex-col overflow-hidden gap-2">
+      <!-- Stats summary -->
+      <div class="flex justify-center gap-1 flex-shrink-0 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 flex-wrap">
+        <!-- Following block -->
+        <div class="flex flex-col justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+          <div class="flex items-center justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Following</span>
+          </div>
+          <div class="flex items-center justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+            <div class="flex flex-col justify-center gap-1 flex-1">
+              <div class="text-xs text-gray-500 dark:text-gray-400 text-center">Raw</div>
+              <div id="rawTotalStat" class="text-center text-sm font-bold border-b border-gray-200 dark:border-gray-700">0</div>
+            </div>
+            <div class="flex flex-col justify-center gap-1 flex-1">
+              <div class="text-xs text-gray-500 dark:text-gray-400 text-center">Clean</div>
+              <div id="filteredStat" class="text-center text-sm font-bold border-b border-gray-200 dark:border-gray-700">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Follower block -->
+        <div class="flex flex-col justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+          <div class="flex justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Follower</span>
+          </div>
+          <div class="flex items-center justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+            <div class="flex flex-col justify-center gap-1 flex-1">
+              <div class="text-xs text-gray-500 dark:text-gray-400 text-center">Raw</div>
+              <div id="rawFollowersStat" class="text-center text-sm font-bold border-b border-gray-200 dark:border-gray-700">0</div>
+            </div>
+            <div class="flex flex-col justify-center gap-1 flex-1">
+              <div class="text-xs text-gray-500 dark:text-gray-400 text-center">Clean</div>
+              <div id="validFollowersStat" class="text-center text-sm font-bold border-b border-gray-200 dark:border-gray-700">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Friends block -->
+        <div class="flex flex-col justify-center gap-2 bg-white dark:bg-gray-900">
+          <div class="flex justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Friends</span>
+          </div>
+          <div class="flex items-center justify-center gap-2 bg-white dark:bg-gray-900">
+            <div id="friendsCountStat" class="text-center text-sm font-bold border-b border-gray-200 dark:border-gray-700">0</div>
+          </div>
+        </div>
+        <!-- Blocked block -->
+        <div class="flex flex-col justify-center gap-2 bg-white dark:bg-gray-900">
+          <div class="flex justify-center gap-2 flex-1 bg-white dark:bg-gray-900">
+            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Blocked</span>
+          </div>
+          <div class="flex items-center justify-center gap-2 bg-white dark:bg-gray-900">
+            <div id="blockedCountStat" class="text-center text-sm font-bold border-b border-gray-200 dark:border-gray-700">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="progressArea" class="flex-shrink-0 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700">
+        <div class="w-full h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full bg-pink-600 transition-all duration-300" style="width:0%"></div>
+        </div>
+        <p id="progressText" class="text-center text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
+      </div>
+
+      <!-- Table container with column toggle -->
+      <div class="flex items-center justify-end mb-1">
+        <div class="relative">
+          <button id="columnToggleBtn" class="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+            <i class="fa-solid fa-columns"></i> Columns
+          </button>
+          <div id="columnDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 hidden p-2">
+          </div>
+        </div>
+      </div>
+      <div id="tableContainer" class="flex-1 overflow-y-auto bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700">
+        <table id="profileTable" class="w-full text-xs border-collapse table-fixed">
+          <thead>
+            <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+              <th class="p-1 w-[10%] avatar-col" data-orig-width="10"></th>
+              <th data-col="username" class="p-1 w-[14%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate hidden-col" data-orig-width="14">Username <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="displayName" class="p-1 w-[14%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate" data-orig-width="14">Name <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="followerCount" class="p-1 w-[12%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate" data-orig-width="12">Followers <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="followingCount" class="p-1 w-[12%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate hidden-col" data-orig-width="12">Following <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="heartCount" class="p-1 w-[12%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate" data-orig-width="12">Likes <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="videoCount" class="p-1 w-[10%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate" data-orig-width="10">Videos <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="following_date" class="p-1 w-[12%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate" data-orig-width="12">Following Date <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="follower_date" class="p-1 w-[1%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate hidden-col" data-orig-width="1">Follower Date <span class="sort-indicator ml-1 text-xs"></span></th>
+              <th data-col="friendship" class="p-1 w-[1%] cursor-pointer select-none hover:text-gray-800 dark:hover:text-white truncate hidden-col" data-orig-width="1">Friendship <span class="sort-indicator ml-1 text-xs"></span></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+            <tr><td colspan="10" class="text-center text-gray-500 dark:text-gray-400 p-4">No data to display</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="failedBlock" class="flex-1 min-h-0 flex flex-col overflow-hidden gap-2 hidden">
+      <div class="flex justify-center gap-4 flex-shrink-0 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 flex-nowrap flex-1 overflow-hidden">
+        <pre id="failed" class="flex-1 w-full h-full text-xs overflow-y-auto"></pre>
+      </div>
+      <div class="flex justify-center gap-4 flex-shrink-0 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 flex-wrap flex-1 overflow-hidden">
+        <pre id="compare" class="flex-1 w-full h-full text-xs overflow-y-auto"></pre>
+      </div>
+      <div class="flex justify-center gap-4 flex-shrink-0 bg-white dark:bg-gray-900 rounded-lg shadow-md p-2 border border-gray-200 dark:border-gray-700 flex-wrap flex-1 overflow-hidden">
+        <pre id="blocked" class="flex-1 w-full h-full text-xs overflow-y-auto"></pre>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========== SETTINGS MODAL ========== -->
+<div id="settingsModal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+  <div class="modal-overlay absolute inset-0" id="modalOverlay"></div>
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-96 max-w-full z-10 p-4 border border-gray-200 dark:border-gray-700">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-lg font-semibold">Settings</h3>
+      <button id="closeSettingsBtn" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="block text-xs font-medium mb-1">API Key</label>
+        <input id="apiKeyInput" type="password" class="w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded px-2 py-1 text-xs" placeholder="Enter your API key">
+      </div>
+      <div>
+        <label class="block text-xs font-medium mb-1">Concurrency</label>
+        <input id="concurrencyInput" type="number" min="1" max="50" class="w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded px-2 py-1 text-xs">
+      </div>
+      <div>
+        <label class="block text-xs font-medium mb-1">Timeout (ms)</label>
+        <input id="timeoutInput" type="number" min="1000" step="500" class="w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded px-2 py-1 text-xs">
+      </div>
+      <div>
+        <label class="block text-xs font-medium mb-1">DB File Path</label>
+        <input id="dbFilePathInput" type="text" class="w-full border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded px-2 py-1 text-xs" placeholder="/assets/proxyDB/TikTokProfile.db">
+      </div>
+      <div class="flex items-center">
+        <input id="fetchAvatarBlobsCheckbox" type="checkbox" class="mr-2">
+        <label for="fetchAvatarBlobsCheckbox" class="text-xs">Fetch avatar blobs (slower)</label>
+      </div>
+    </div>
+    <div class="flex justify-end mt-4">
+      <button id="saveSettingsBtn" class="bg-pink-600 hover:bg-pink-700 text-white px-3 py-1 rounded text-xs">Save</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="w-full bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 shadow-lg flex items-center justify-between z-10 px-2 py-1">
+    <div class="flex px-2 w-full h-3 overflow-hidden min-w-0 w-full">
+      <span id="dbStatus" class="flex-1 text-green-600 dark:text-green-400 text-xs ml-2"></span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">v1.0</span>
+    </div>
+  </footer>
+ 
+ <!-- Loading overlay (hidden by default) -->
+<div id="loadingOverlay" class="fixed inset-0 flex items-center justify-center z-50 bg-black/60 hidden">
+  <div class="flex flex-col items-center gap-3">
+    <i class="fa-solid fa-spinner fa-spin text-pink-500 text-4xl"></i>
+    <p class="text-white text-sm font-medium">Processing TikTok data…</p>
+  </div>
+</div>
+ <script src="/assets/jafersql.js"></script>
+  <script>
+    (function() {
+      const toggleBtn = document.getElementById('themeToggle');
+      if (!toggleBtn) return;
+      const icon = toggleBtn.querySelector('i');
+      const html = document.documentElement;
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'light') {
+        html.classList.remove('dark');
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+      } else {
+        html.classList.add('dark');
+        icon.classList.add('fa-moon');
+        icon.classList.remove('fa-sun');
+      }
+      toggleBtn.addEventListener('click', () => {
+        if (html.classList.contains('dark')) {
+          html.classList.remove('dark');
+          icon.classList.remove('fa-moon');
+          icon.classList.add('fa-sun');
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.add('dark');
+          icon.classList.remove('fa-sun');
+          icon.classList.add('fa-moon');
+          localStorage.setItem('theme', 'dark');
+        }
+      });
+    })();
+  </script>
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>
